@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <new>
 #include <utility>
 
 namespace spsc_queue {
@@ -58,8 +59,10 @@ class SpscQueue {
   }
 
   alignas(alignof(T)) std::byte storage_[Capacity * sizeof(T)];
-  std::atomic<size_t> push_count_{0};
-  std::atomic<std::size_t> pop_count_{0};
+  alignas(std::hardware_destructive_interference_size)
+      std::atomic<size_t> push_count_{0};
+  alignas(std::hardware_destructive_interference_size)
+      std::atomic<std::size_t> pop_count_{0};
 };
 
 };  // namespace spsc_queue
