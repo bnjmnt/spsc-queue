@@ -28,9 +28,12 @@ class SpscQueue {
 
   bool TryPush(T item) {
     std::size_t push = push_count_.load(std::memory_order_relaxed);
-    std::size_t pop = pop_count_.load(std::memory_order_acquire);
-    if (push - pop == Capacity) {
-      return false;
+
+    if (push - cached_pop_ == Capacity) {
+      cached_pop_ = pop_count_.load(std::memory_order_acquire);
+      if (push - cached_pop_ == Capacity) {
+        return false;
+      }
     }
 
     new (SlotAt(push)) T(std::move(item));
@@ -40,9 +43,12 @@ class SpscQueue {
 
   bool TryPop(T& out) {
     std::size_t pop = pop_count_.load(std::memory_order_relaxed);
-    std::size_t push = push_count_.load(std::memory_order_acquire);
-    if (push == pop) {
-      return false;
+
+    if (cached_push_ == pop) {
+      cached_push_ = push_count_.load(std::memory_order_acquire);
+      if (cached_push_ == pop) {
+        return false;
+      }
     }
 
     T* slot = SlotAt(pop);
@@ -63,6 +69,8 @@ class SpscQueue {
       std::atomic<size_t> push_count_{0};
   alignas(std::hardware_destructive_interference_size)
       std::atomic<std::size_t> pop_count_{0};
+  std::size_t cached_pop_{};
+  std::size_t cached_push_{};
 };
 
 };  // namespace spsc_queue
