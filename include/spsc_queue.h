@@ -1,6 +1,7 @@
 #ifndef SPSC_QUEUE_INCLUDE_SPSC_QUEUE_H_
 #define SPSC_QUEUE_INCLUDE_SPSC_QUEUE_H_
 
+#include <atomic>
 #include <cstddef>
 #include <utility>
 
@@ -25,18 +26,28 @@ class SpscQueue {
   SpscQueue& operator=(const SpscQueue&) = delete;
 
   bool TryPush(T item) {
-    if (push_count_ - pop_count_ == Capacity) return false;
-    new (SlotAt(push_count_)) T(std::move(item));
-    ++push_count_;
+    std::size_t push = push_count_.load(std::memory_order_relaxed);
+    std::size_t pop = pop_count_.load(std::memory_order_acquire);
+    if (push - pop == Capacity) {
+      return false;
+    }
+
+    new (SlotAt(push)) T(std::move(item));
+    push_count_.store(push + 1, std::memory_order_release);
     return true;
   }
 
   bool TryPop(T& out) {
-    if (push_count_ == pop_count_) return false;
-    T* slot = SlotAt(pop_count_);
+    std::size_t pop = pop_count_.load(std::memory_order_relaxed);
+    std::size_t push = push_count_.load(std::memory_order_acquire);
+    if (push == pop) {
+      return false;
+    }
+
+    T* slot = SlotAt(pop);
     out = std::move(*slot);
     slot->~T();
-    ++pop_count_;
+    pop_count_.store(pop + 1, std::memory_order_release);
     return true;
   }
 
@@ -47,8 +58,8 @@ class SpscQueue {
   }
 
   alignas(alignof(T)) std::byte storage_[Capacity * sizeof(T)];
-  std::size_t push_count_{};
-  std::size_t pop_count_{};
+  std::atomic<size_t> push_count_{0};
+  std::atomic<std::size_t> pop_count_{0};
 };
 
 };  // namespace spsc_queue
