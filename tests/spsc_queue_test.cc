@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "spsc_queue.h"
+
+#include <gtest/gtest.h>
 
 namespace spsc_queue {
 namespace {
