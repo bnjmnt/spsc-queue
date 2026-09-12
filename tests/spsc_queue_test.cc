@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <thread>
+
 namespace spsc_queue {
 namespace {
 
@@ -38,6 +40,35 @@ TEST(SpscQueueTest, WrapsAroundTwice) {
       EXPECT_TRUE(q.TryPop(out));
       EXPECT_EQ(out, cycle * 4 + i);
     }
+  }
+}
+
+TEST(SpscQueueTest, ConcurrentPushPop) {
+  constexpr int kItems = 1'000'000;
+  SpscQueue<int, 1024> q;
+  std::vector<int> received;
+  received.reserve(kItems);
+
+  std::thread producer([&] {
+    for (int i = 0; i < kItems; ++i) {
+      while (!q.TryPush(i)) {
+      }
+    }
+  });
+
+  std::thread consumer([&] {
+    int out = 0;
+    while (static_cast<int>(received.size()) < kItems) {
+      if (q.TryPop(out)) received.push_back(out);
+    }
+  });
+
+  producer.join();
+  consumer.join();
+
+  ASSERT_EQ(received.size(), static_cast<size_t>(kItems));
+  for (int i = 0; i < kItems; ++i) {
+    EXPECT_EQ(received[i], i);
   }
 }
 
