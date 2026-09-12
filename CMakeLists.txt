@@ -6,6 +6,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(Threads REQUIRED)
+
 add_library(spsc_queue INTERFACE)
 target_include_directories(spsc_queue INTERFACE include)
 
@@ -20,7 +22,7 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_executable(spsc_queue_test tests/spsc_queue_test.cc)
-target_link_libraries(spsc_queue_test PRIVATE spsc_queue GTest::gtest_main)
+target_link_libraries(spsc_queue_test PRIVATE spsc_queue GTest::gtest_main Threads::Threads)
 
 include(GoogleTest)
 gtest_discover_tests(spsc_queue_test)
