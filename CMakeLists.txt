@@ -21,7 +21,7 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(spsc_queue_test tests/spsc_queue_test.cc)
+add_executable(spsc_queue_test tests/spsc_queue_test.cpp)
 target_link_libraries(spsc_queue_test PRIVATE spsc_queue GTest::gtest_main Threads::Threads)
 
 include(GoogleTest)
